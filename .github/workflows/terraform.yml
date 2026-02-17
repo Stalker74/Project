@@ -94,7 +94,7 @@ jobs:
         run: terraform plan -out=tfplan-dev
 
       - name: Upload Plan
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tfplan-dev
           path: terraform/tfplan-dev
@@ -130,7 +130,7 @@ jobs:
         run: terraform workspace select dev
 
       - name: Download Plan
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tfplan-dev
           path: terraform/
@@ -175,7 +175,7 @@ jobs:
         run: terraform plan -out=tfplan-prod
 
       - name: Upload Plan
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tfplan-prod
           path: terraform/tfplan-prod
@@ -211,7 +211,7 @@ jobs:
         run: terraform workspace select prod
 
       - name: Download Plan
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tfplan-prod
           path: terraform/
@@ -225,7 +225,7 @@ jobs:
         run: terraform output -json > outputs.json
 
       - name: Upload Outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs-prod
           path: terraform/outputs.json
