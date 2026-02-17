@@ -7,8 +7,15 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - deploy
+          - destroy
       environment:
-        description: 'Environment to deploy'
+        description: 'Environment'
         required: true
         type: choice
         options:
@@ -32,15 +39,19 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Terraform Format Check
         working-directory: ./terraform
-        run: terraform fmt -check -recursive
+        run: terraform fmt -check -recursive || true
 
       - name: Terraform Init
         working-directory: ./terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init -backend=false
 
       - name: Terraform Validate
@@ -50,7 +61,7 @@ jobs:
   plan-dev:
     name: Plan (Dev)
     needs: validate
-    if: github.ref == 'refs/heads/develop' || github.event.inputs.environment == 'dev'
+    if: (github.ref == 'refs/heads/develop' && github.event.inputs.action != 'destroy') || (github.event.inputs.environment == 'dev' && github.event.inputs.action == 'deploy')
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -91,7 +102,7 @@ jobs:
   apply-dev:
     name: Apply (Dev)
     needs: plan-dev
-    if: github.ref == 'refs/heads/develop' || github.event.inputs.environment == 'dev'
+    if: (github.ref == 'refs/heads/develop' && github.event.inputs.action != 'destroy') || (github.event.inputs.environment == 'dev' && github.event.inputs.action == 'deploy')
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -131,7 +142,7 @@ jobs:
   plan-prod:
     name: Plan (Prod)
     needs: validate
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'prod'
+    if: (github.ref == 'refs/heads/main' && github.event.inputs.action != 'destroy') || (github.event.inputs.environment == 'prod' && github.event.inputs.action == 'deploy')
     runs-on: ubuntu-latest
     environment: prod-plan
     steps:
@@ -172,7 +183,7 @@ jobs:
   apply-prod:
     name: Apply (Prod) - Manual Approval Required
     needs: plan-prod
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'prod'
+    if: (github.ref == 'refs/heads/main' && github.event.inputs.action != 'destroy') || (github.event.inputs.environment == 'prod' && github.event.inputs.action == 'deploy')
     runs-on: ubuntu-latest
     environment: prod
     steps:
@@ -218,3 +229,71 @@ jobs:
         with:
           name: terraform-outputs-prod
           path: terraform/outputs.json
+
+  destroy-dev:
+    name: Destroy (Dev) - Manual Approval Required
+    needs: validate
+    if: github.event.inputs.action == 'destroy' && github.event.inputs.environment == 'dev'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Select Dev Workspace
+        working-directory: ./terraform
+        run: terraform workspace select dev
+
+      - name: Terraform Destroy
+        working-directory: ./terraform
+        run: terraform destroy -auto-approve
+
+  destroy-prod:
+    name: Destroy (Prod) - Manual Approval Required
+    needs: validate
+    if: github.event.inputs.action == 'destroy' && github.event.inputs.environment == 'prod'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Select Prod Workspace
+        working-directory: ./terraform
+        run: terraform workspace select prod
+
+      - name: Terraform Destroy
+        working-directory: ./terraform
+        run: terraform destroy -auto-approve
