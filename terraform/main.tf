@@ -64,7 +64,7 @@ resource "aws_security_group" "web" {
 
 # IAM Role for EC2
 resource "aws_iam_role" "ec2_role" {
-  name = "${local.env}-ec2-role"
+  name = "${local.env}-ec2-role-${data.aws_caller_identity.current.account_id}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -79,7 +79,7 @@ resource "aws_iam_role" "ec2_role" {
 }
 
 resource "aws_iam_role_policy" "ec2_policy" {
-  name = "${local.env}-ec2-policy"
+  name = "${local.env}-ec2-policy-${data.aws_caller_identity.current.account_id}"
   role = aws_iam_role.ec2_role.id
 
   policy = jsonencode({
@@ -112,7 +112,7 @@ resource "aws_iam_role_policy" "ec2_policy" {
 }
 
 resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "${local.env}-ec2-profile"
+  name = "${local.env}-ec2-profile-${data.aws_caller_identity.current.account_id}"
   role = aws_iam_role.ec2_role.name
 }
 
