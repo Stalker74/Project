@@ -1,0 +1,19 @@
+# Example Terraform variables file
+# Copy this file to terraform.tfvars and customize as needed
+
+aws_region = "us-east-1"
+
+# Uncomment to override default VPC CIDRs
+# vpc_cidr = {
+#   dev  = "10.0.0.0/16"
+#   prod = "10.1.0.0/16"
+# }
+
+# Uncomment to override default instance types
+# instance_type = {
+#   dev  = "t2.micro"
+#   prod = "t3.small"
+# }
+
+# Uncomment to restrict SSH access
+# allowed_ssh_cidr = ["YOUR_IP/32"]
