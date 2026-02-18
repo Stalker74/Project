@@ -1,6 +1,10 @@
 name: Terraform CI/CD
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       action:
@@ -47,8 +51,10 @@ jobs:
   plan:
     name: Plan
     needs: validate
-    if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, prod]
     steps:
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-terraform@v2
@@ -64,13 +70,13 @@ jobs:
         run: terraform init
       - name: Select Workspace
         working-directory: ./terraform
-        run: terraform workspace select ${{ github.event.inputs.environment }} || terraform workspace new ${{ github.event.inputs.environment }}
+        run: terraform workspace select ${{ matrix.environment }} || terraform workspace new ${{ matrix.environment }}
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan -out=tfplan
       - uses: actions/upload-artifact@v4
         with:
-          name: tfplan-${{ github.event.inputs.environment }}
+          name: tfplan-${{ matrix.environment }}
           path: terraform/tfplan
 
   apply:
