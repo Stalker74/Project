@@ -13,8 +13,8 @@ on:
         type: choice
         options:
           - plan
-          - apply
-          - destroy
+          - apply-both
+          - destroy-both
 
 env:
   TF_VERSION: '1.6.0'
@@ -75,7 +75,7 @@ jobs:
   apply:
     name: Apply
     needs: plan
-    if: github.event.inputs.action == 'apply'
+    if: github.event.inputs.action == 'apply-both'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -108,7 +108,7 @@ jobs:
   destroy:
     name: Destroy
     needs: validate
-    if: github.event.inputs.action == 'destroy'
+    if: github.event.inputs.action == 'destroy-both'
     runs-on: ubuntu-latest
     strategy:
       matrix:
