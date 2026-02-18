@@ -86,6 +86,11 @@ jobs:
         working-directory: ./terraform
         run: terraform init
 
+      - name: Clear State Lock (if exists)
+        working-directory: ./terraform
+        run: |
+          terraform force-unlock -force $(aws dynamodb scan --table-name terraform-state-lock --query "Items[?contains(LockID.S, 'dev')].LockID.S" --output text) || true
+
       - name: Select Dev Workspace
         working-directory: ./terraform
         run: |
@@ -102,7 +107,7 @@ jobs:
           path: terraform/tfplan-dev
 
   apply-dev:
-    name: Apply (Dev)
+    name: Apply (Dev) - Manual Approval Required
     needs: plan-dev
     if: github.ref == 'refs/heads/develop' || (github.ref == 'refs/heads/main' && github.event.inputs.action != 'deploy-prod') || github.event.inputs.action == 'deploy-dev' || github.event.inputs.action == 'deploy-both'
     runs-on: ubuntu-latest
@@ -143,7 +148,7 @@ jobs:
 
   plan-prod:
     name: Plan (Prod)
-    needs: apply-dev
+    needs: validate
     if: (github.ref == 'refs/heads/main' && github.event.inputs.action != 'deploy-dev') || github.event.inputs.action == 'deploy-prod' || github.event.inputs.action == 'deploy-both'
     runs-on: ubuntu-latest
     environment: prod-plan
@@ -166,6 +171,11 @@ jobs:
       - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
+
+      - name: Clear State Lock (if exists)
+        working-directory: ./terraform
+        run: |
+          terraform force-unlock -force $(aws dynamodb scan --table-name terraform-state-lock --query "Items[?contains(LockID.S, 'prod')].LockID.S" --output text) || true
 
       - name: Select Prod Workspace
         working-directory: ./terraform
@@ -237,7 +247,7 @@ jobs:
     needs: validate
     if: github.event.inputs.action == 'destroy' && github.event.inputs.environment == 'dev'
     runs-on: ubuntu-latest
-    environment: dev
+    environment: dev-destroy
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -271,7 +281,7 @@ jobs:
     needs: validate
     if: github.event.inputs.action == 'destroy' && github.event.inputs.environment == 'prod'
     runs-on: ubuntu-latest
-    environment: prod
+    environment: prod-destroy
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
