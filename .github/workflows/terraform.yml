@@ -268,6 +268,11 @@ jobs:
         working-directory: ./terraform
         run: terraform init
 
+      - name: Clear State Lock (if exists)
+        working-directory: ./terraform
+        run: |
+          terraform force-unlock -force $(aws dynamodb scan --table-name terraform-state-lock --query "Items[?contains(LockID.S, 'dev')].LockID.S" --output text) || true
+
       - name: Select Dev Workspace
         working-directory: ./terraform
         run: terraform workspace select dev
@@ -301,6 +306,11 @@ jobs:
       - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
+
+      - name: Clear State Lock (if exists)
+        working-directory: ./terraform
+        run: |
+          terraform force-unlock -force $(aws dynamodb scan --table-name terraform-state-lock --query "Items[?contains(LockID.S, 'prod')].LockID.S" --output text) || true
 
       - name: Select Prod Workspace
         working-directory: ./terraform
