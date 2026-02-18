@@ -134,11 +134,13 @@ jobs:
         working-directory: ./terraform
         continue-on-error: true
         run: |
-          LOCK_ID=$(aws dynamodb scan --table-name terraform-state-lock --filter-expression "contains(LockID, :env)" --expression-attribute-values '{":env":{"S":"${{ github.event.inputs.environment }}"}}' --query 'Items[0].LockID.S' --output text 2>/dev/null || echo "")
-          if [ ! -z "$LOCK_ID" ] && [ "$LOCK_ID" != "None" ]; then
-            echo "Found lock: $LOCK_ID, attempting to remove..."
-            terraform force-unlock -force $LOCK_ID || true
-          fi
+          # Get all locks from DynamoDB
+          aws dynamodb scan --table-name terraform-state-lock --query 'Items[*].LockID.S' --output text | tr '\t' '\n' | while read LOCK_ID; do
+            if [ ! -z "$LOCK_ID" ]; then
+              echo "Removing lock: $LOCK_ID"
+              terraform force-unlock -force "$LOCK_ID" 2>/dev/null || true
+            fi
+          done
       - name: Terraform Destroy
         working-directory: ./terraform
         run: terraform destroy -auto-approve
