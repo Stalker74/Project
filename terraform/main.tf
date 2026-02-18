@@ -156,6 +156,7 @@ resource "aws_instance" "web" {
     region         = var.aws_region
     app_port       = var.app_port
     s3_bucket      = aws_s3_bucket.artifacts.id
+    environment    = local.env
   })
 
   root_block_device {

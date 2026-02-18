@@ -91,7 +91,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/app
-Environment="ENVIRONMENT=$(curl -s http://169.254.169.254/latest/meta-data/tags/instance/Environment)"
+Environment="ENVIRONMENT=${environment}"
 ExecStart=/usr/bin/python3 /opt/app/app.py
 Restart=always
 
